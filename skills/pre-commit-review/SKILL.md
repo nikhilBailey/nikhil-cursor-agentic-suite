@@ -1,12 +1,13 @@
 ---
 name: pre-commit-review
 description: >-
-  Pre-commit review gate that runs diff-scope-auditor then Bugbot, applies
-  in-scope fixes, and loops with hard caps until both pass or human intervention
-  is required. Always ends with a one-line suggested commit message matching
-  repo conventions. Use when the user asks to commit, create a git commit, or run
-  pre-commit review / commit gate; also before opening a PR when they want the
-  same gate. Do not commit until both gates are green or the user explicitly waives.
+  Pre-commit review gate that runs diff-scope-auditor, then test-scrutinizer
+  plus the test suite, then Bugbot, applies in-scope fixes, and loops with
+  hard caps until the gates pass or human intervention is required. Always
+  ends with a one-line suggested commit message matching repo conventions.
+  Use when the user asks to commit, create a git commit, or run pre-commit
+  review / commit gate; also before opening a PR when they want the same
+  gate. Do not commit until the gates are green or the user explicitly waives.
 ---
 
 # Pre-commit review
@@ -16,8 +17,9 @@ Run this gate **before** creating a commit (or before a PR when the user asks fo
 ## Budget (hard)
 
 - Max **2 full cycles** (auditor → fix → Bugbot → fix → …)
-- Max **4** total subagent runs (auditor + Bugbot combined)
-- Hit the cap without both green → **stop and ask the user** (see Escalation)
+- Max **4** total subagent runs (**auditor + Bugbot combined**). Test-scrutinizer shards do **not** count against this 4.
+- Test-scrutinizer + test suite run **once**, on the first pass only (after the first auditor, before the first Bugbot)
+- Hit the cap without the gates green → **stop and ask the user** (see Escalation)
 
 Track: `auditor_runs`, `bugbot_runs`, `cycle`.
 
@@ -29,12 +31,20 @@ Track: `auditor_runs`, `bugbot_runs`, `cycle`.
 - **Consider** items are optional — do not loop on them
 - Ticket backlog is noted for the user, **not** implemented now
 
+**test-scrutinizer passes** when:
+
+- There were no added/changed tests, or
+- Every **Critical** and **Should fix** on those tests is resolved (test-suite edits only)
+- **Minor** items are optional — do not loop on them
+
+**Test suite passes** when the project's tests covering the change exit 0.
+
 **Bugbot passes** when:
 
 - No remaining **must-fix** findings that are in scope for the **original task**
 - Findings that need redesign, new dependencies, or out-of-scope work → escalate (do not expand the diff to silence Bugbot)
 
-**Both green** = both pass with no further required changes → proceed to commit per the user's git commit rules.
+**Gates green** = auditor + test-scrutinizer (if tests) + test suite + Bugbot pass with no further required changes → proceed to commit per the user's git commit rules.
 
 ## Scope anchor
 
@@ -53,13 +63,19 @@ User asks to commit (or pre-commit review)
   → diff-scope-auditor
   → fix only required auditor items (shrink/correct scope)
   → if Reject/redo or escalation triggers → human
+  → test-scrutinizer over tests added (shard by file or test if large)
+  → fix only Critical/Should-fix test-suite items
+  → run the test suite
+  → if tests still fail after one in-scope fix → human
   → Bugbot
   → fix only in-scope must-fix bugs (smallest patch)
   → re-run auditor (catch Bugbot-driven bloat)
   → if needed, one more Bugbot pass
-  → both green → commit
+  → gates green → commit
   → else after budget → human
 ```
+
+Do **not** re-run test-scrutinizer or the test suite on later auditor/Bugbot cycles unless you changed tests again to satisfy a must-fix — then re-run only the affected tests before the next Bugbot.
 
 ### 1. Run diff-scope-auditor
 
@@ -90,7 +106,63 @@ Do not:
 
 If Verdict is **Reject / redo with narrower approach**, either apply the **Minimal alternative approach** within budget or escalate.
 
-### 3. Run Bugbot
+### 3. Run test-scrutinizer (first pass only)
+
+From the commit diff (same set as the scope snapshot), list **added or changed tests**: new test files, and new or modified test cases in existing test files.
+
+- **None** → skip this step; still run the test suite (step 5)
+- Do **not** review those tests in the parent. Identify paths/names from `git status` / `git diff` only, then launch Task.
+
+**Shard if large** so each subagent sees a bounded target:
+
+- **2+ test files** → one Task per file
+- **One file that is still large** (roughly more than ~8 test functions/cases, or a large added-test hunk) → one Task per test, or per class/`describe` if that is the natural unit
+- **Otherwise** → one Task covering the named added/changed tests
+
+Launch shards in **parallel** (multiple Task calls in one message) when there is more than one.
+
+Each Task:
+
+- `subagent_type: "test-scrutinizer"`
+- `description: "Test scrutinizer"` (or a short concrete title such as the file name)
+- `run_in_background: false`
+
+Prompt shape:
+
+```text
+Audit these tests. Produce the structured scrutinizer report only. Recommendations must be scoped to the test suite alone — do not recommend production-code changes. Do not implement fixes.
+
+Explicitly look for obvious flakes: timing/race assumptions, uncontrolled randomness or clocks, order-dependent or shared mutable state, real network or external I/O, brittle polling/timeouts, and other patterns likely to pass locally but fail intermittently in CI.
+
+Full Repository Path: <absolute repository path>
+Target: named tests
+Named tests:
+<this shard's files, classes, or test names>
+```
+
+On failure: retry once (fix prompt shape; if `test-scrutinizer` is unregistered, once as `generalPurpose` whose prompt starts with the full contents of `~/.cursor/agents/test-scrutinizer.md`). If still failing → escalate. Tell the user a **Developer: Reload Window** (or restart Cursor) will register the subagent for later chats.
+
+### 4. Apply scrutinizer fixes (parent only)
+
+- Resolve **Critical** and **Should fix** with the **smallest** test-only edits
+- Leave **Minor** unless trivial and clearly helpful
+- Do **not** change production code to satisfy the scrutinizer
+- Do **not** add large new test files or out-of-scope coverage; a small missing complementary case for behavior this diff already claims to lock down is in scope
+- Ticket the rest for the user
+
+### 5. Run the test suite (first pass only)
+
+After scrutinizer (or immediately if there were no tests to audit), run the project's test suite covering the change.
+
+- Use the repo's usual command (`package.json` `test`, `pytest`, `go test`, `cargo test`, `make test`, etc.)
+- If the default is a huge monorepo run and the repo has a targeted command for the touched package/module, use that
+- Do not invent a one-off subset the project does not use
+
+If the suite fails: apply **one** in-scope fix (smallest patch; same scope rules as Bugbot), then re-run. Still red → escalate. Do not proceed to Bugbot with a failing suite.
+
+If there is no test runner / nothing to run, note that and continue to Bugbot.
+
+### 6. Run Bugbot
 
 Launch exactly one `bugbot` subagent:
 
@@ -114,21 +186,22 @@ Diff selection:
 
 On failure: retry once per the usual Bugbot rules (fix prompt shape; if diff cannot be computed, once with `Diff: natural language` + `Change Description`). If still failing → escalate.
 
-### 4. Apply Bugbot fixes (parent only)
+### 7. Apply Bugbot fixes (parent only)
 
 - Fix only **in-scope must-fix** issues with the **smallest** correct patch
 - Prefer existing project patterns; no new libraries unless unavoidable for a real bug — if unavoidable, escalate
 - After fixes, continue the loop (auditor again if budget remains)
 
-### 5. Alternate until stable or budget
+### 8. Alternate until stable or budget
 
-After Bugbot fixes, re-run auditor to catch bloat. Then Bugbot again only if needed and budget remains. Stop early when both pass with no required changes.
+After Bugbot fixes, re-run auditor to catch bloat. Then Bugbot again only if needed and budget remains. Stop early when the gates pass with no required changes.
 
 ## Conflict precedence (auditor vs Bugbot)
 
 1. **Correctness** wins over pure minimalism — keep the smallest fix that addresses a real Bugbot must-fix
 2. **Scope** wins over polish — no features, deps, or refactors to clear either side
 3. If Bugbot requires material new surface the auditor would reject → **escalate** with both summaries; do not expand
+4. Test-scrutinizer must not expand production scope; test-only Critical/Should-fix edits may land even if they add a few cases
 
 ## Escalation (stop and ask the user)
 
@@ -140,7 +213,8 @@ Stop immediately when any of:
 - Auditor notes repetitive scope increase, or Verdict is **Reject / redo** and a narrow redo is unclear
 - About to add a dependency, broad refactor, or unrelated modules to satisfy a finding
 - Oscillation (e.g. auditor removes tests ↔ Bugbot demands them back)
-- Bugbot/auditor invocation fails twice
+- Bugbot / auditor / test-scrutinizer invocation fails twice
+- Test suite still failing after one in-scope fix-and-rerun
 - Satisfying a finding would violate the scope anchor
 
 Escalation message (concise):
@@ -148,14 +222,14 @@ Escalation message (concise):
 - Scope anchor
 - What passed / failed
 - Remaining findings (bullet list)
-- Why you stopped (budget, loop, conflict, etc.)
+- Why you stopped (budget, loop, conflict, test failure, etc.)
 - Options: waive and commit, apply a specific trim, open tickets, or redo narrowly
 
 Then finish with [Commit message suggestion](#commit-message-suggestion-required--always-last) (required).
 
-## After both green
+## After the gates are green
 
-1. Briefly tell the user both gates passed (one short summary; mention any deferred ticket backlog).
+1. Briefly tell the user the gates passed (one short summary; mention any deferred ticket backlog).
 2. Create the commit only if the user asked to commit — follow their git commit rules (status/diff/log, HEREDOC message, no push unless asked). Use the suggested commit message from the final step below when committing.
 3. If they only asked for pre-commit review, stop after the summary — do not commit unless they ask.
 
@@ -196,4 +270,3 @@ Suggested commit message:
 ```text
 [IAM-8585] - Refactor Address onto IamPayloadModel with snake_case fields
 ```
-

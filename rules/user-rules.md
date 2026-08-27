@@ -110,4 +110,4 @@ If no browser tools are available, verify through the closest available substitu
 
 ## Pre-commit review
 
-Before creating a git commit (when I ask you to commit), follow the pre-commit-review skill. Do not commit until both gates are green or I explicitly waive the review. If the skill escalates, stop and ask me rather than committing.
+Before creating a git commit (when I ask you to commit), follow the pre-commit-review skill. Do not commit until the review gates are green or I explicitly waive the review. If the skill escalates, stop and ask me rather than committing.
