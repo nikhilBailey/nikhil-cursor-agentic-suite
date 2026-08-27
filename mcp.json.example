@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "jira": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@atlassian-dc-mcp/jira"
+      ],
+      "env": {
+        "JIRA_HOST": "jira.trimble.tools",
+        "JIRA_API_TOKEN": "<REDACTED>"
+      }
+    }
+  }
+}

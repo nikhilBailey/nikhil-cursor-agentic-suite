@@ -1,0 +1,13 @@
+.DS_Store
+__pycache__/
+*.pyc
+*.pyo
+
+# Hook runtime (approved-libraries.json and similar)
+hooks/state/
+
+# Never store live MCP credentials. Use mcp.json.example instead.
+mcp.json
+*.local
+.env
+.env.*

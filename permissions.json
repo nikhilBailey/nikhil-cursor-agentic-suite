@@ -1,0 +1,9 @@
+{
+  "autoRun": {
+    "block_instructions": [
+      "Never run git commit, git commit --amend, git push, git push -u, or gh pr create unless the user explicitly asks for that exact action in the current message.",
+      "Never run destructive git commands (git reset --hard, git push --force, git rebase) unless the user explicitly requests them.",
+      "Do not stage or commit on the user's behalf as a follow-up to finishing code changes. Commits, pushes, and pull requests are manual-only."
+    ]
+  }
+}

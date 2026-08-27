@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "command": "./hooks/gate-library-add.sh",
+        "timeout": 5
+      }
+    ],
+    "beforeShellExecution": [
+      {
+        "command": "./hooks/block-git-writes.sh",
+        "matcher": "git\\s|gh\\s",
+        "failClosed": true,
+        "timeout": 10
+      },
+      {
+        "command": "./hooks/gate-library-add.sh",
+        "matcher": "npm|yarn|pnpm|bun|pip|poetry|uv\\s|cargo\\s|composer\\s|bundle\\s|dotnet\\s|gem\\s|go\\s+get|go\\s+install",
+        "failClosed": true,
+        "timeout": 45
+      }
+    ],
+    "afterShellExecution": [
+      {
+        "command": "./hooks/gate-library-add.sh",
+        "matcher": "npm|yarn|pnpm|bun|pip|poetry|uv\\s|cargo\\s|composer\\s|bundle\\s|dotnet\\s|gem\\s|go\\s+get|go\\s+install",
+        "timeout": 10
+      }
+    ],
+    "preToolUse": [
+      {
+        "command": "./hooks/gate-library-add.sh",
+        "matcher": "Write|StrReplace",
+        "failClosed": true,
+        "timeout": 45
+      }
+    ]
+  }
+}
