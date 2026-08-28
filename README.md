@@ -3,7 +3,7 @@
 Private backup of user-level Cursor hooks, skills, subagents, and related
 config from `~/.cursor`. Restore this onto a new machine if the laptop dies.
 
-Remote: `git@github.com:nikhilbailey-trimble/nikhil-cursor-agentic-suite.git`
+Remote: `git@github.com:nikhilbailey/nikhil-cursor-agentic-suite.git`
 
 ## What is stored
 
@@ -47,7 +47,7 @@ writing git remotes by `hooks/block-git-writes.sh`.
 ## Restore (new laptop)
 
 ```bash
-git clone git@github.com:nikhilbailey-trimble/nikhil-cursor-agentic-suite.git
+git clone git@github.com:nikhilbailey/nikhil-cursor-agentic-suite.git
 cd nikhil-cursor-agentic-suite
 ./scripts/restore.sh
 ```
