@@ -23,6 +23,9 @@ fi
 if [[ -f "$REPO_ROOT/permissions.json" ]]; then
   cp "$REPO_ROOT/permissions.json" "$DEST/permissions.json"
 fi
+if [[ -f "$REPO_ROOT/LICENSE" ]]; then
+  cp "$REPO_ROOT/LICENSE" "$DEST/LICENSE"
+fi
 
 chmod +x "$DEST"/hooks/*.sh "$DEST"/hooks/*.py 2>/dev/null || true
 

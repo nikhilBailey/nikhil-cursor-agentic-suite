@@ -29,6 +29,9 @@ fi
 if [[ -f "$SRC/permissions.json" ]]; then
   cp "$SRC/permissions.json" "$REPO_ROOT/permissions.json"
 fi
+if [[ -f "$SRC/LICENSE" ]]; then
+  cp "$SRC/LICENSE" "$REPO_ROOT/LICENSE"
+fi
 
 python3 - "$SRC/mcp.json" "$REPO_ROOT/mcp.json.example" <<'PY'
 import json, sys

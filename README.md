@@ -13,6 +13,7 @@ Remote: `git@github.com:nikhilbailey-trimble/nikhil-cursor-agentic-suite.git`
 | `hooks/` + `hooks.json` | `~/.cursor/hooks/` and `hooks.json` |
 | `skills/` | `~/.cursor/skills/` (user skills) |
 | `permissions.json` | `~/.cursor/permissions.json` |
+| `LICENSE` | `~/.cursor/LICENSE` |
 | `mcp.json.example` | Redacted copy of `~/.cursor/mcp.json` |
 | `rules/user-rules.md` | Cursor Settings → Rules (user scope; not refreshed by `backup.sh`) |
 
@@ -62,3 +63,8 @@ Then:
 
 Do not commit live `mcp.json`. The backup script redacts keys whose names look
 like tokens, secrets, passwords, or credentials.
+
+## License
+
+All resources in this repository were created and are owned by Nikhil Bailey.
+They are licensed under the [MIT License](LICENSE).
