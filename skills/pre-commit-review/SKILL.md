@@ -37,7 +37,7 @@ Track: `auditor_runs`, `bugbot_runs`, `cycle`.
 - Every **Critical** and **Should fix** on those tests is resolved (test-suite edits only)
 - **Minor** items are optional — do not loop on them
 
-**Test suite passes** when the project's tests covering the change exit 0.
+**Test suite passes** when the project's tests covering the change exit 0, and — if the repo has a known coverage rule — tests were run **with coverage** and that threshold is **met**.
 
 **Bugbot passes** when:
 
@@ -65,8 +65,8 @@ User asks to commit (or pre-commit review)
   → if Reject/redo or escalation triggers → human
   → test-scrutinizer over tests added (shard by file or test if large)
   → fix only Critical/Should-fix test-suite items
-  → run the test suite
-  → if tests still fail after one in-scope fix → human
+  → run the test suite (with coverage if the repo has a known coverage rule)
+  → if tests fail or coverage is unmet after one in-scope fix → human
   → Bugbot
   → fix only in-scope must-fix bugs (smallest patch)
   → re-run auditor (catch Bugbot-driven bloat)
@@ -158,7 +158,13 @@ After scrutinizer (or immediately if there were no tests to audit), run the proj
 - If the default is a huge monorepo run and the repo has a targeted command for the touched package/module, use that
 - Do not invent a one-off subset the project does not use
 
-If the suite fails: apply **one** in-scope fix (smallest patch; same scope rules as Bugbot), then re-run. Still red → escalate. Do not proceed to Bugbot with a failing suite.
+**Coverage:** If the repo has a **known coverage rule**, tests **must** be run **with coverage**, and that threshold **must** be met.
+
+- A known rule is a threshold or fail-under the project already defines — test config (`package.json` `coverageThreshold`, `pyproject.toml` / `pytest.ini` / `setup.cfg` `fail_under` / `--cov-fail-under`), CI, Makefile/script, Cursor rules, or `AGENTS.md`
+- Use the project's coverage-enabled command; do **not** invent a tool or threshold the repo does not use
+- If there is no such rule, a passing suite without coverage is enough
+
+If the suite fails **or coverage is below the known rule**: apply **one** in-scope fix (smallest patch; same scope rules as Bugbot), then re-run **with coverage when a coverage rule applies**. Still red → escalate. Do not proceed to Bugbot with a failing suite or unmet coverage.
 
 If there is no test runner / nothing to run, note that and continue to Bugbot.
 
@@ -214,7 +220,7 @@ Stop immediately when any of:
 - About to add a dependency, broad refactor, or unrelated modules to satisfy a finding
 - Oscillation (e.g. auditor removes tests ↔ Bugbot demands them back)
 - Bugbot / auditor / test-scrutinizer invocation fails twice
-- Test suite still failing after one in-scope fix-and-rerun
+- Test suite still failing after one in-scope fix-and-rerun (including unmet coverage when a coverage rule applies)
 - Satisfying a finding would violate the scope anchor
 
 Escalation message (concise):
