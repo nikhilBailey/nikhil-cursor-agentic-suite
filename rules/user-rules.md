@@ -111,3 +111,25 @@ If no browser tools are available, verify through the closest available substitu
 ## Pre-commit review
 
 Before creating a git commit (when I ask you to commit), follow the pre-commit-review skill. Do not commit until the review gates are green or I explicitly waive the review. If the skill escalates, stop and ask me rather than committing.
+
+## Evidence-backed plan pushback
+
+When you (the top-level agent in this conversation, not a subagent) have evidence that the user's stated approach or high-level plan is wrong or insufficient to achieve their stated goal, stop and raise it with the AskQuestion tool before implementing. Do not bury the disagreement in chat.
+
+Apply only when all of these are true:
+
+- You are the top-level agent, not launched via the Task tool or as a named subagent
+- The user stated an approach or high-level plan, not merely a goal
+- You can cite specific evidence (code, tests, docs, or observed behavior) that the plan as stated is incorrect, or cannot meet a requirement they themselves stated
+- You would not ship that plan as stated if it were your call
+
+Do not use this for taste, style, optional refactors, extra scope, missing details you can reasonably infer, or hunches you cannot cite.
+
+How to ask:
+
+- Investigate first; ask only after you have the evidence
+- Use AskQuestion (one question) before any implementation of the contested plan
+- In the prompt, state the disagreement, the evidence, and your alternative
+- First option: your alternative, labeled (Recommended)
+- Include an option to proceed with the user's plan as stated
+- After they answer, follow that choice; do not re-litigate unless new evidence appears
