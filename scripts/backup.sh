@@ -24,7 +24,12 @@ if [[ -f "$SRC/hooks.json" ]]; then
   cp "$SRC/hooks.json" "$REPO_ROOT/hooks.json"
 fi
 if [[ -d "$SRC/skills" ]]; then
-  rsync -a --delete --exclude '.DS_Store' "$SRC/skills/" "$REPO_ROOT/skills/"
+  # Skip skills that are symlinks (workplace-specific, not in skills/).
+  rsync_excludes=(--exclude '.DS_Store')
+  while IFS= read -r name; do
+    rsync_excludes+=(--exclude "$name")
+  done < <(find "$SRC/skills" -mindepth 1 -maxdepth 1 -type l -exec basename {} \;)
+  rsync -a --delete "${rsync_excludes[@]}" "$SRC/skills/" "$REPO_ROOT/skills/"
 fi
 if [[ -f "$SRC/permissions.json" ]]; then
   cp "$SRC/permissions.json" "$REPO_ROOT/permissions.json"

@@ -32,7 +32,11 @@ Resolve inputs, download or ingest artifacts, compare when a baseline exists, th
 - **Report B (PR delta)** compares target vs baseline when a baseline exists.
 - Each **parameterized invocation is its own test** — never collapse by `fullName` alone.
 
+
+
 ## Workflow
+
+
 
 ### 1. Resolve analysis directory and skill path
 
@@ -47,12 +51,14 @@ Use `<ANALYSIS_DIR>/target-results/` and `<ANALYSIS_DIR>/baseline-results/` for 
 
 Pick the ingestion path from user input:
 
-| Input | Action |
-|-------|--------|
+
+| Input         | Action                                                                                                                          |
+| ------------- | ------------------------------------------------------------------------------------------------------------------------------- |
 | GitHub run ID | `python3 $SKILL_PATH/scripts/github_artifacts.py download --run <id> --repo <owner/repo> --output $ANALYSIS_DIR/target-results` |
-| Artifact URL | `python3 $SKILL_PATH/scripts/github_artifacts.py download-url --url <url> --output $ANALYSIS_DIR/target-results` |
-| Local zip | `python3 $SKILL_PATH/scripts/ingest.py --input <zip> --output $ANALYSIS_DIR/target-results` |
-| Local dir | `python3 $SKILL_PATH/scripts/ingest.py --input <dir> --output $ANALYSIS_DIR/target-results` |
+| Artifact URL  | `python3 $SKILL_PATH/scripts/github_artifacts.py download-url --url <url> --output $ANALYSIS_DIR/target-results`                |
+| Local zip     | `python3 $SKILL_PATH/scripts/ingest.py --input <zip> --output $ANALYSIS_DIR/target-results`                                     |
+| Local dir     | `python3 $SKILL_PATH/scripts/ingest.py --input <dir> --output $ANALYSIS_DIR/target-results`                                     |
+
 
 Discover repo from `gh run view`, artifact URL, or workspace `git remote`. Discover artifact names from `gh run view --json artifacts`; prefer names containing `allure-results`, then other `allure*` names.
 
@@ -78,6 +84,8 @@ python3 $SKILL_PATH/scripts/compare.py \
   --target $ANALYSIS_DIR/target-results \
   --output $ANALYSIS_DIR/comparison-report.json
 ```
+
+
 
 ### 5. PR diff (optional)
 
@@ -120,14 +128,16 @@ Include:
 - **Top failure-message clusters** (first line or prefix, top 10–15)
 - **Red flags** — evaluate every item below; each hit is one red flag with evidence:
 
-| # | Red flag | Trigger |
-|---|----------|---------|
-| 1 | Majority red | failed + broken > passed |
-| 2 | Dominant infra/fixture failure | One message prefix accounts for >25% of failures |
-| 3 | Harness collapse | broken count > 15% of total OR broken > failed |
-| 4 | Empty or truncated results | Zero tests ingested OR total far below run metadata claims |
-| 5 | Extreme skip rate | skipped > 50% of total |
-| 6 | No passes | passed == 0 and total > 0 |
+
+| #   | Red flag                       | Trigger                                                    |
+| --- | ------------------------------ | ---------------------------------------------------------- |
+| 1   | Majority red                   | failed + broken > passed                                   |
+| 2   | Dominant infra/fixture failure | One message prefix accounts for >15% of failures           |
+| 3   | Harness collapse               | broken count > 15% of total OR broken > failed             |
+| 4   | Empty or truncated results     | Zero tests ingested OR total far below run metadata claims |
+| 5   | Extreme skip rate              | skipped > 50% of total                                     |
+| 6   | No passes                      | passed == 0 and total > 0                                  |
+
 
 Output **Red flag count: N** prominently.
 
@@ -221,9 +231,12 @@ Suite health red flags: N — see Suite Health. Acknowledge these before treatin
 <count and top patterns>
 ```
 
+
+
 ## Quality bar
 
 - Lead with suite health when the target run is overwhelmingly red — do not bury it under a clean delta.
 - Be explicit when baseline was inferred.
 - Cite real test names, messages, and counts from ingested data — never invent numbers.
 - If ingestion fails, say what was tried and what format is needed (`allure-results` JSON preferred; HTML report `data/` fallback).
+

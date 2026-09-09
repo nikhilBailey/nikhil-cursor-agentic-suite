@@ -20,6 +20,11 @@ fi
 if [[ -d "$REPO_ROOT/skills" ]]; then
   rsync -a --exclude '.DS_Store' "$REPO_ROOT/skills/" "$DEST/skills/"
 fi
+if [[ -d "$REPO_ROOT/workplace-specific" ]]; then
+  while IFS= read -r skill_dir; do
+    ln -sfn "$skill_dir" "$DEST/skills/$(basename "$skill_dir")"
+  done < <(find "$REPO_ROOT/workplace-specific" -mindepth 2 -maxdepth 2 -type d -exec test -f '{}/SKILL.md' \; -print)
+fi
 if [[ -f "$REPO_ROOT/permissions.json" ]]; then
   cp "$REPO_ROOT/permissions.json" "$DEST/permissions.json"
 fi

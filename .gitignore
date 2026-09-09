@@ -3,6 +3,12 @@ __pycache__/
 *.pyc
 *.pyo
 
+# Workplace-specific skills stay local. Track only .gitkeep so employer
+# folders exist in git; add another folder + .gitkeep for a future job.
+workplace-specific/**
+!workplace-specific/**/
+!workplace-specific/**/.gitkeep
+
 # Hook runtime (approved-libraries.json and similar)
 hooks/state/
 
