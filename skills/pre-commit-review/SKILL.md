@@ -3,11 +3,13 @@ name: pre-commit-review
 description: >-
   Pre-commit review gate that runs diff-scope-auditor, then test-scrutinizer
   plus the test suite, then Bugbot, applies in-scope fixes, and loops with
-  hard caps until the gates pass or human intervention is required. Always
-  ends with a one-line suggested commit message matching repo conventions.
-  Use when the user asks to commit, create a git commit, or run pre-commit
-  review / commit gate; also before opening a PR when they want the same
-  gate. Do not commit until the gates are green or the user explicitly waives.
+  hard caps until the gates pass or human intervention is required. After
+  gates are green, runs relevant-tests-selector as a post-gate automation/
+  regression sanity check. Always ends with a one-line suggested commit
+  message matching repo conventions. Use when the user asks to commit, create
+  a git commit, or run pre-commit review / commit gate; also before opening
+  a PR when they want the same gate. Do not commit until the gates are green
+  and relevant tests pass, or the user explicitly waives.
 ---
 
 # Pre-commit review
@@ -17,8 +19,9 @@ Run this gate **before** creating a commit (or before a PR when the user asks fo
 ## Budget (hard)
 
 - Max **2 full cycles** (auditor → fix → Bugbot → fix → …)
-- Max **4** total subagent runs (**auditor + Bugbot combined**). Test-scrutinizer shards do **not** count against this 4.
+- Max **4** total subagent runs (**auditor + Bugbot combined**). Test-scrutinizer shards and relevant-tests-selector do **not** count against this 4.
 - Test-scrutinizer + test suite run **once**, on the first pass only (after the first auditor, before the first Bugbot)
+- Relevant-tests-selector runs **once**, after the loop is green (not inside the auditor/Bugbot cycle)
 - Hit the cap without the gates green → **stop and ask the user** (see Escalation)
 
 Track: `auditor_runs`, `bugbot_runs`, `cycle`.
@@ -44,7 +47,9 @@ Track: `auditor_runs`, `bugbot_runs`, `cycle`.
 - No remaining **must-fix** findings that are in scope for the **original task**
 - Findings that need redesign, new dependencies, or out-of-scope work → escalate (do not expand the diff to silence Bugbot)
 
-**Gates green** = auditor + test-scrutinizer (if tests) + test suite + Bugbot pass with no further required changes → proceed to commit per the user's git commit rules.
+**Relevant tests pass** when the relevant-tests-selector subagent returns no commands (**Nothing to run: yes**), or every command it returns exits successfully with zero failures.
+
+**Gates green** = auditor + test-scrutinizer (if tests) + test suite + Bugbot pass with no further required changes → run the relevant-tests-selector sanity check → all relevant tests pass (or nothing to run) → proceed to commit per the user's git commit rules.
 
 ## Scope anchor
 
@@ -71,7 +76,9 @@ User asks to commit (or pre-commit review)
   → fix only in-scope must-fix bugs (smallest patch)
   → re-run auditor (catch Bugbot-driven bloat)
   → if needed, one more Bugbot pass
-  → gates green → commit
+  → gates green → relevant-tests-selector sanity check
+  → if any relevant test failed → human
+  → all relevant tests pass (or nothing to run) → commit
   → else after budget → human
 ```
 
@@ -221,6 +228,8 @@ Stop immediately when any of:
 - Oscillation (e.g. auditor removes tests ↔ Bugbot demands them back)
 - Bugbot / auditor / test-scrutinizer invocation fails twice
 - Test suite still failing after one in-scope fix-and-rerun (including unmet coverage when a coverage rule applies)
+- Relevant-tests-selector invocation fails twice
+- Any relevant automation/regression test failed (do not auto-fix and re-run in this gate)
 - Satisfying a finding would violate the scope anchor
 
 Escalation message (concise):
@@ -235,7 +244,19 @@ Then finish with [Commit message suggestion](#commit-message-suggestion-required
 
 ## After the gates are green
 
-1. Briefly tell the user the gates passed (one short summary; mention any deferred ticket backlog).
+### 9. Run relevant-tests-selector (post-gate sanity check)
+
+Follow the **relevant-tests-selector** skill (`~/.cursor/skills/relevant-tests-selector/SKILL.md`). Do not inline a second copy of that procedure.
+
+- Pass the same diff basis used for the commit (uncommitted vs branch) and the scope anchor.
+- If the subagent returns **Nothing to run: yes**, treat as pass and continue.
+- If any command fails or the selector cannot be launched after retries → **escalate** (do not commit, do not auto-fix and re-run).
+
+This step is a sanity check for **automation and regression tests influenced by the current code**, not a repeat of the first-pass unit/integration suite from step 5.
+
+### 10. Commit or summarize
+
+1. Briefly tell the user the gates and relevant-tests check passed (one short summary; mention any deferred ticket backlog and relevant-test counts when commands ran).
 2. Create the commit only if the user asked to commit — follow their git commit rules (status/diff/log, HEREDOC message, no push unless asked). Use the suggested commit message from the final step below when committing.
 3. If they only asked for pre-commit review, stop after the summary — do not commit unless they ask.
 
