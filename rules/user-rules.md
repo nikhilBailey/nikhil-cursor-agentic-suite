@@ -108,6 +108,15 @@ When implementing or fixing anything in a web application (UI, layout, styling, 
 
 If no browser tools are available, verify through the closest available substitute (tests, curl against the dev server, rendering scripts) and say what you could not verify.
 
+## Subagent model (no Fast)
+
+When calling the Task tool to launch any subagent, turn Fast off when a non-fast slug is available.
+
+- Never pass a model slug ending in `-fast` unless the user explicitly asked for Fast.
+- If inherit would pick a fast model (the parent is a `*-fast` slug such as `composer-2.5-fast`) and the non-fast sibling is in the available subagent model list, pass that sibling (e.g. `composer-2.5`).
+- Otherwise pass `inherit` (or omit `model`) so the subagent stays in the parent model family.
+- Do not switch families just to avoid Fast (do not launch Composer because the parent is Grok).
+
 ## Pre-commit review
 
 Before creating a git commit (when I ask you to commit), follow the pre-commit-review skill. Do not commit until the review gates are green or I explicitly waive the review. If the skill escalates, stop and ask me rather than committing.

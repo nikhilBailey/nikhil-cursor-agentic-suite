@@ -37,6 +37,10 @@ fi
 if [[ -f "$SRC/LICENSE" ]]; then
   cp "$SRC/LICENSE" "$REPO_ROOT/LICENSE"
 fi
+if [[ -d "$SRC/rules" ]]; then
+  mkdir -p "$REPO_ROOT/rules"
+  rsync -a --exclude '.DS_Store' --exclude 'user-rules.md' "$SRC/rules/" "$REPO_ROOT/rules/"
+fi
 
 python3 - "$SRC/mcp.json" "$REPO_ROOT/mcp.json.example" <<'PY'
 import json, sys

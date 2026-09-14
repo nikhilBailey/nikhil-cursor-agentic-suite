@@ -1,18 +1,27 @@
 ---
 name: allure-report-analyzer
 description: >-
-  Download and analyze Allure test reports via the allure-report-analyzer
-  subagent. Accepts GitHub Actions run IDs, artifact URLs, local zips, or
-  allure-results directories. Emits two separate reports — suite health
-  (target only) and PR delta vs baseline — with red-flag checklist and
-  parameterized test identity. Use when the user asks to analyze Allure
-  reports, compare test runs, investigate CI failures, or run
-  allure-report-analyzer.
+  Parent-agent launcher for the allure-report-analyzer subagent. Accepts
+  GitHub Actions run IDs, artifact URLs, local zips, or allure-results
+  directories. Emits two separate reports — suite health (target only) and
+  PR delta vs baseline. Use when the user asks to analyze Allure reports,
+  compare test runs, investigate CI failures, or run allure-report-analyzer.
+  Do not apply this launch procedure if you are already running as
+  allure-report-analyzer or as a generalPurpose fallback of that agent.
 ---
 
 # Allure report analyzer
 
-When the user wants Allure reports analyzed, **do not analyze in the parent agent**. Your **first tool call** must be the Task launch below. Do not Grep, Read, Glob, or Shell the codebase first.
+This file is the **parent-agent launcher**. If you are already running as
+`allure-report-analyzer`, or your prompt already contains
+"You are an **Allure report analyzer**", **stop**. Do **not** call Task.
+Follow `~/.cursor/agents/allure-report-analyzer.md` and the scripts in this
+skill directory.
+
+When the user wants Allure reports analyzed and you are **not** already that
+subagent, **do not analyze in the parent agent**. Your **first tool call**
+must be the Task launch below. Do not Grep, Read, Glob, or Shell the
+codebase first.
 
 ## Launch
 
@@ -21,6 +30,7 @@ Use the Task tool with:
 - `subagent_type: "allure-report-analyzer"`
 - `description: "Allure report analysis"` (or a short concrete title)
 - `run_in_background: false` unless the user explicitly asks to run in background
+- `model`: non-fast. If the available subagent slugs include a fast/non-fast pair and the parent is the fast slug (for example `composer-2.5-fast`), pass the non-fast sibling (`composer-2.5`). Otherwise pass `inherit`. Never pass a `*-fast` slug unless the user asked for fast.
 
 Pass **only** what the user provided in the Task `prompt`. Include the absolute workspace/repository path when known.
 
@@ -60,5 +70,5 @@ Do **not** pass comparison counts, failure classifications, report templates, or
 
 - Bad invocation (wrong type, empty prompt): correct once and retry.
 - Other transient Task failures: retry once with the same prompt.
-- If Task rejects `allure-report-analyzer` as unknown/unregistered: retry **once** as `generalPurpose` whose prompt starts with the full contents of `~/.cursor/agents/allure-report-analyzer.md`, then the prompt shape above. Tell the user a **Developer: Reload Window** (or restart Cursor) will register the subagent for later chats.
+- If Task rejects `allure-report-analyzer` as unknown/unregistered: retry **once** as `generalPurpose` whose prompt starts with the full contents of `~/.cursor/agents/allure-report-analyzer.md`, then the prompt shape above. Use the same non-fast `model` rule as Launch. Tell the user a **Developer: Reload Window** (or restart Cursor) will register the subagent for later chats.
 - If that fallback also fails, stop. Do not analyze in the parent unless they explicitly ask you to proceed without the subagent.

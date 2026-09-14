@@ -31,6 +31,10 @@ fi
 if [[ -f "$REPO_ROOT/LICENSE" ]]; then
   cp "$REPO_ROOT/LICENSE" "$DEST/LICENSE"
 fi
+if [[ -d "$REPO_ROOT/rules" ]]; then
+  mkdir -p "$DEST/rules"
+  rsync -a --exclude '.DS_Store' --exclude 'user-rules.md' "$REPO_ROOT/rules/" "$DEST/rules/"
+fi
 
 chmod +x "$DEST"/hooks/*.sh "$DEST"/hooks/*.py 2>/dev/null || true
 

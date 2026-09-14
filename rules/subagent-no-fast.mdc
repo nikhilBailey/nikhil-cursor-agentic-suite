@@ -1,0 +1,13 @@
+---
+description: Launch Task subagents with Fast off when a non-fast slug is listed
+alwaysApply: true
+---
+
+# Subagent model (no Fast)
+
+When calling the Task tool, turn Fast off if a non-fast model slug is available.
+
+- Never pass a slug ending in `-fast` unless the user explicitly asked for Fast.
+- If inherit would pick a fast model (parent is `composer-2.5-fast` or another `*-fast` slug), pass the listed non-fast sibling (`composer-2.5`).
+- Otherwise pass `inherit` (or omit `model`) so the subagent stays in the parent family.
+- Do not switch model families just to avoid Fast.
