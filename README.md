@@ -16,6 +16,7 @@ Remote: `git@github.com:nikhilbailey/nikhil-cursor-agentic-suite.git`
 | `LICENSE` | `~/.cursor/LICENSE` |
 | `mcp.json.example` | Redacted copy of `~/.cursor/mcp.json` |
 | `rules/user-rules.md` | Cursor Settings → Rules (user scope; not refreshed by `backup.sh`) |
+| `rules/*.mdc` | `~/.cursor/rules/` (always-apply user rules) |
 
 Layout matches `~/.cursor` so restore is a straight copy.
 
@@ -57,6 +58,7 @@ Then:
 1. Copy `mcp.json.example` to `~/.cursor/mcp.json` if needed and fill in secrets.
 2. Paste rules from `rules/user-rules.md` into Cursor Settings → Rules.
    (`backup.sh` does not refresh that file; edit it when Settings rules change.)
+   Always-apply `*.mdc` rules restore into `~/.cursor/rules/`.
 3. Restart Cursor.
 
 ## Secrets

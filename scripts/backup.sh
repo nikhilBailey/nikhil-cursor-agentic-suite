@@ -37,6 +37,7 @@ fi
 if [[ -f "$SRC/LICENSE" ]]; then
   cp "$SRC/LICENSE" "$REPO_ROOT/LICENSE"
 fi
+# Always-apply user rules (*.mdc). Do not --delete: rules/ also holds user-rules.md.
 if [[ -d "$SRC/rules" ]]; then
   mkdir -p "$REPO_ROOT/rules"
   rsync -a --exclude '.DS_Store' --exclude 'user-rules.md' "$SRC/rules/" "$REPO_ROOT/rules/"

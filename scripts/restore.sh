@@ -46,5 +46,6 @@ elif [[ -f "$DEST/mcp.json" ]]; then
 fi
 
 echo "Restored agentic files to $DEST"
-echo "Re-add user rules from $REPO_ROOT/rules/user-rules.md in Cursor Settings → Rules."
+echo "Re-add Settings rules from $REPO_ROOT/rules/user-rules.md in Cursor Settings → Rules."
+echo "Always-apply *.mdc rules were copied to $DEST/rules/ if present."
 echo "Restart Cursor so hooks and skills reload."
