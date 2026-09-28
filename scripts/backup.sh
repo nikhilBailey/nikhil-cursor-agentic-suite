@@ -17,7 +17,7 @@ if [[ -d "$SRC/agents" ]]; then
 fi
 if [[ -d "$SRC/hooks" ]]; then
   rsync -a --delete --exclude '.DS_Store' --exclude '__pycache__' --exclude '*.pyc' \
-    --exclude 'state/' \
+    --exclude 'state/' --exclude 'first-party.json' \
     "$SRC/hooks/" "$REPO_ROOT/hooks/"
 fi
 if [[ -f "$SRC/hooks.json" ]]; then

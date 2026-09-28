@@ -1,6 +1,6 @@
 # Exploratory quiz examples
 
-Copy the good shapes. The bad ones are from the first axp-data-security run.
+Copy the good shapes. The bad ones are from the first payments-api quiz run.
 
 ## Option length and tell
 
@@ -8,21 +8,21 @@ Copy the good shapes. The bad ones are from the first axp-data-security run.
 
 ```text
 prompt: Where does create vs update start?
-A) CreateFederationPage (federations/create): name the federation and prove domains with a DNS TXT record (getDNSTXTRecord / tiddomainverification=). UpdateFederationPage (federations/:id): set protocol and mappings.  [len ~340]
-B) CreateFederationPage is where you paste OIDC/SAML metadata. UpdateFederationPage is only for deleting federations.
+A) CreateSsoPage (sso/create): name the domain and prove it with a DNS TXT record (getDNSTXTRecord / ssodomainverification=). UpdateSsoPage (sso/:id): set protocol and mappings.  [len ~340]
+B) CreateSsoPage is where you paste OIDC/SAML metadata. UpdateSsoPage is only for deleting domains.
 C) There is a single page; create and :id are aliases for the same component.
-D) ManageFederationsPage contains the create and protocol forms; the other two pages are unused leftovers.
+D) ManageSsoPage contains the create and protocol forms; the other two pages are unused leftovers.
 E) I need help — explain this, then quiz me again.
 ```
 
 **Good** — shared evidence in the stem; four parallel sentences; correct index rotated (`itemIndex % 4` = 2 here):
 
 ```text
-prompt: New TID domain federation vs continue an existing one. Pages live under src/pages/DomainFederationsPage/. Which split is right?
-A) CreateFederationPage pastes OIDC/SAML metadata; UpdateFederationPage only deletes.
+prompt: New SSO domain vs continue an existing one. Pages live under src/pages/SsoDomainsPage/. Which split is right?
+A) CreateSsoPage pastes OIDC/SAML metadata; UpdateSsoPage only deletes.
 B) create and :id are aliases; one component handles both jobs.
-C) CreateFederationPage names the federation and proves domains; UpdateFederationPage configures protocol.
-D) ManageFederationsPage owns create and protocol; the other pages are leftovers.
+C) CreateSsoPage names the domain and proves ownership; UpdateSsoPage configures protocol.
+D) ManageSsoPage owns create and protocol; the other pages are leftovers.
 E) I need help — explain this, then quiz me again.
 ```
 
@@ -84,17 +84,17 @@ One line of plan status, then ask item 6 (the next budgeted item you have not as
 
 ## New information: rework remaining
 
-You say the quiz is on the wrong track, rework the plan, or this is not what you wanted to learn (e.g. you asked for federations navigation and the remaining items are all Jest/CI).
+You say the quiz is on the wrong track, rework the plan, or this is not what you wanted to learn (e.g. you asked for SSO navigation and the remaining items are all Jest/CI).
 
 Keep N and already-asked items. Replace the rest. Show the new remaining list once.
 
 ```text
 Plan reworked (6 of 12 remaining). New remaining:
-7. [find] federations axios client vs tid-client
+7. [find] sso axios client vs idp-client
 8. [change] OIDC vs SAML save split
 9. [find] account uuid for the manage list
 10. [run] one-spec Jest path (command only, not suite health)
-11. [confusable] Vite module federation vs TID domain federations
+11. [confusable] Vite module federation vs SSO domain federations
 12. [confusable] SPA login callback vs IdP ACS
 ```
 

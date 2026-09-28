@@ -7,7 +7,7 @@
         "@atlassian-dc-mcp/jira"
       ],
       "env": {
-        "JIRA_HOST": "jira.trimble.tools",
+        "JIRA_HOST": "jira.example.com",
         "JIRA_API_TOKEN": "<REDACTED>"
       }
     }

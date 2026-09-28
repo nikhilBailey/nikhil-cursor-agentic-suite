@@ -1,0 +1,29 @@
+---
+description: Committed skills in this repo must stay workplace-agnostic
+globs: skills/**
+alwaysApply: false
+---
+
+# Workplace-agnostic skills
+
+This repository’s committed skills are **workplace-agnostic**. Employer-specific skills belong under `workplace-specific/<employer>/` (gitignored except `.gitkeep`).
+
+When adding or editing files under `skills/`:
+
+- Do **not** include employer names, internal hostnames, product names, repo names, or ticket prefixes from a specific workplace
+- Do **not** hard-code machine paths, internal MCP plugins, or “how we run tests here” as the only procedure
+- Examples and sample commit/PR/ticket text must use generic placeholders (`KEY-123`, `Acme`, `IdP`), not a real workplace’s keys or types
+
+```markdown
+# ❌ BAD — workplace leaked into a committed skill
+[GOOGLE-8585] - Refactor Data onto GOOGLE gcp model
+AWS-11888: sign in via AWS Identity
+```
+
+```markdown
+# ✅ GOOD — same idea, no workplace
+[KEY-123] - Move data onto the shared data model
+KEY-123: sign in via the identity provider
+```
+
+If the content only makes sense at one employer, put it in `workplace-specific/` instead of `skills/`.

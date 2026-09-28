@@ -24,6 +24,10 @@ if [[ -d "$REPO_ROOT/workplace-specific" ]]; then
   while IFS= read -r skill_dir; do
     ln -sfn "$skill_dir" "$DEST/skills/$(basename "$skill_dir")"
   done < <(find "$REPO_ROOT/workplace-specific" -mindepth 2 -maxdepth 2 -type d -exec test -f '{}/SKILL.md' \; -print)
+  while IFS= read -r policy; do
+    mkdir -p "$DEST/hooks"
+    cp "$policy" "$DEST/hooks/first-party.json"
+  done < <(find "$REPO_ROOT/workplace-specific" -name first-party.json -print)
 fi
 if [[ -f "$REPO_ROOT/permissions.json" ]]; then
   cp "$REPO_ROOT/permissions.json" "$DEST/permissions.json"

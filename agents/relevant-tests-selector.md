@@ -47,7 +47,7 @@ Prefer:
 
 Avoid:
 
-- Unit tests in service packages when a testing skill explicitly says to use a different suite (e.g. IAM service unit tests vs `tests/automation`)
+- Unit tests in service packages when a testing skill explicitly says to use a different suite (e.g. package-level unit tests vs a repo-root `tests/automation` suite)
 - Re-running tests already covered by the pre-commit first-pass suite unless they are automation/regression layers the first pass would not hit
 
 ## Command lookup (strict order)

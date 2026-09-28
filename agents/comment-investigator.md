@@ -23,7 +23,7 @@ You receive a comment URL, comment id, pasted comment text, and/or change contex
   - `...#discussion_r{comment_id}`
   - Extract owner, repo, pull number, and comment id when present.
 3. Fetch missing comment text (read-only), in order:
-  - **E-Tools MCP** (`plugin-e-tools-mcp-E-Tools MCP`): authenticate with `mcp_auth` if `GetMcpTools` shows `needsAuth`. Run `GetMcpTools` with pattern `github|pull|review|comment` and call the best-matching fetch tool with owner/repo/number/comment id.
+  - **Review MCP**: if a GitHub/Bitbucket/review MCP namespace is available, authenticate with `mcp_auth` when GetDynamicTools shows `needsAuth`. Discover tools with pattern `github|pull|review|comment` and call the best-matching fetch tool with owner/repo/number/comment id.
   - `gh api` **fallback**: `gh api repos/{owner}/{repo}/pulls/comments/{comment_id}`. If that 404s, try `gh api repos/{owner}/{repo}/pulls/{number}/comments` and find the matching id.
 4. If fetch fails, say what is missing and proceed only with pasted material. Do not invent comment text.
 

@@ -2,7 +2,8 @@
 """Gate adding libraries to a repo.
 
 Policy (all must pass):
-  1. Permissive commercial license (MIT/Apache/BSD/ISC-style) OR Trimble-made
+  1. Permissive commercial license (MIT/Apache/BSD/ISC-style) OR first-party
+     (optional hooks/first-party.json)
   2. No HIGH/CRITICAL vulnerabilities on the version being added
   3. Human approval (never auto-allow a new/changed dependency)
 
@@ -183,6 +184,75 @@ class Pkg:
 
 def log(msg: str) -> None:
     print(f"gate-library-add: {msg}", file=sys.stderr)
+
+
+FIRST_PARTY_FILENAME = "first-party.json"
+
+
+@dataclass(frozen=True)
+class FirstPartyPolicy:
+    """Optional employer/org allowlist. Empty policy matches nothing."""
+
+    label: str = "first-party"
+    npm_scope_substrings: tuple[str, ...] = ()
+    name_prefixes: tuple[str, ...] = ()
+    github_orgs: tuple[str, ...] = ()
+    host_suffixes: tuple[str, ...] = ()
+    meta_words: tuple[str, ...] = ()
+
+    def active(self) -> bool:
+        return bool(
+            self.npm_scope_substrings
+            or self.name_prefixes
+            or self.github_orgs
+            or self.host_suffixes
+            or self.meta_words
+        )
+
+
+def _string_tuple(value: Any) -> tuple[str, ...]:
+    if not isinstance(value, list):
+        return ()
+    return tuple(str(x).strip() for x in value if str(x).strip())
+
+
+def policy_from_dict(data: dict[str, Any]) -> FirstPartyPolicy:
+    label = str(data.get("label") or "first-party").strip() or "first-party"
+    return FirstPartyPolicy(
+        label=label,
+        npm_scope_substrings=_string_tuple(data.get("npm_scope_substrings")),
+        name_prefixes=_string_tuple(data.get("name_prefixes")),
+        github_orgs=_string_tuple(data.get("github_orgs")),
+        host_suffixes=_string_tuple(data.get("host_suffixes")),
+        meta_words=_string_tuple(data.get("meta_words")),
+    )
+
+
+def load_first_party_policy() -> FirstPartyPolicy:
+    candidates = [
+        Path(__file__).resolve().parent / FIRST_PARTY_FILENAME,
+        Path.home() / ".cursor/hooks" / FIRST_PARTY_FILENAME,
+    ]
+    seen: set[Path] = set()
+    for path in candidates:
+        try:
+            resolved = path.resolve()
+        except OSError:
+            continue
+        if resolved in seen or not path.is_file():
+            continue
+        seen.add(resolved)
+        try:
+            raw = json.loads(path.read_text())
+        except (OSError, json.JSONDecodeError) as exc:
+            log(f"could not read {path}: {exc}")
+            continue
+        if isinstance(raw, dict):
+            return policy_from_dict(raw)
+    return FirstPartyPolicy()
+
+
+FIRST_PARTY = load_first_party_policy()
 
 
 def emit(payload: dict[str, Any]) -> None:
@@ -390,24 +460,46 @@ def _split_top(s: str, sep: str) -> list[str]:
     return [p.strip() for p in parts if p.strip()] if len(parts) > 1 else [s]
 
 
-def is_trimble_name(name: str) -> bool:
+def is_first_party_name(name: str, policy: FirstPartyPolicy | None = None) -> bool:
+    policy = policy or FIRST_PARTY
+    if not policy.active():
+        return False
     lower = name.lower()
-    if lower.startswith("@") and "trimble" in lower.split("/", 1)[0]:
-        return True
-    return bool(re.match(r"^trimble([._-]|$)", lower))
+    if lower.startswith("@"):
+        scope = lower.split("/", 1)[0]
+        for sub in policy.npm_scope_substrings:
+            if sub.lower() in scope:
+                return True
+    for prefix in policy.name_prefixes:
+        if re.match(rf"^{re.escape(prefix.lower())}([._-]|$)", lower):
+            return True
+    return False
 
 
-def is_trimble_meta(name: str, blobs: list[str]) -> bool:
-    if is_trimble_name(name):
+def is_first_party_git_spec(raw: str, policy: FirstPartyPolicy | None = None) -> bool:
+    policy = policy or FIRST_PARTY
+    lower = raw.lower()
+    for org in policy.github_orgs:
+        o = re.escape(org.lower())
+        if re.search(rf"github\.com/{o}(/|$)", lower) or re.search(rf"github:{o}(/|$)", lower):
+            return True
+    return False
+
+
+def is_first_party_meta(name: str, blobs: list[str], policy: FirstPartyPolicy | None = None) -> bool:
+    policy = policy or FIRST_PARTY
+    if is_first_party_name(name, policy):
         return True
     joined = "\n".join(b for b in blobs if b).lower()
-    if re.search(r"github\.com/trimble(-oss|-inc)?(/|$)", joined):
+    if is_first_party_git_spec(joined, policy):
         return True
-    if re.search(r"(^|://)([a-z0-9.-]+\.)?trimble\.com(/|$)", joined):
-        return True
-    if re.search(r"\btrimble\b", joined):
-        # Only count author/publisher-style fields, not arbitrary readme text.
-        return True
+    for host in policy.host_suffixes:
+        h = re.escape(host.lower())
+        if re.search(rf"(^|://)([a-z0-9.-]+\.)?{h}(/|$)", joined):
+            return True
+    for word in policy.meta_words:
+        if re.search(rf"\b{re.escape(word.lower())}\b", joined):
+            return True
     return False
 
 
@@ -442,9 +534,8 @@ def parse_npm_spec(spec: str) -> Pkg | None:
     if raw.startswith(("file:", "workspace:", "link:", "./", "../")) or raw.startswith("/"):
         return Pkg("npm", raw, local=True, raw=raw)
     if raw.startswith(("git+", "git://", "github:", "gitlab:", "bitbucket:", "http://", "https://", "ssh://")):
-        trimble = bool(re.search(r"github\.com/trimble|github:trimble", raw, re.I))
         name = raw
-        return Pkg("npm", name, local=trimble, raw=raw)
+        return Pkg("npm", name, local=is_first_party_git_spec(raw), raw=raw)
     name = raw
     version = None
     if raw.startswith("@"):
@@ -1076,10 +1167,10 @@ def lookup_latest_version(pkg: Pkg) -> str | None:
     return None
 
 
-def fetch_license_and_trimble(pkg: Pkg, version: str) -> tuple[str | None, bool, list[str]]:
+def fetch_license_and_origin(pkg: Pkg, version: str) -> tuple[str | None, bool, list[str]]:
     notes: list[str] = []
     license_expr: str | None = None
-    trimble = is_trimble_name(pkg.name)
+    first_party = is_first_party_name(pkg.name)
     meta_blobs: list[str] = []
 
     system = deps_dev_system(pkg.ecosystem)
@@ -1171,8 +1262,8 @@ def fetch_license_and_trimble(pkg: Pkg, version: str) -> tuple[str | None, bool,
         elif pkg.ecosystem == "Go":
             encoded = urllib.parse.quote(pkg.name, safe="")
             meta_blobs.append(pkg.name)
-            if "trimble" in pkg.name.lower():
-                trimble = True
+            if is_first_party_name(pkg.name) or is_first_party_git_spec(pkg.name):
+                first_party = True
     except urllib.error.HTTPError as exc:
         notes.append(f"registry HTTP {exc.code}")
     except Exception as exc:
@@ -1200,9 +1291,9 @@ def fetch_license_and_trimble(pkg: Pkg, version: str) -> tuple[str | None, bool,
         except Exception as exc:
             notes.append(f"nuget nuspec: {exc}")
 
-    if not trimble:
-        trimble = is_trimble_meta(pkg.name, meta_blobs)
-    return license_expr, trimble, notes
+    if not first_party:
+        first_party = is_first_party_meta(pkg.name, meta_blobs)
+    return license_expr, first_party, notes
 
 
 def serious_vulns(pkg: Pkg, version: str) -> list[str]:
@@ -1247,16 +1338,16 @@ def evaluate_packages(pkgs: list[Pkg]) -> tuple[list[str], list[str], list[Pkg]]
             summaries.append(f"{pkg.name} (local/first-party path; skipped registry checks)")
             resolved.append(pkg)
             continue
-        trimble_by_name = is_trimble_name(pkg.name)
+        first_party_by_name = is_first_party_name(pkg.name)
         version = pkg.version
         if version and not re.match(r"^[0-9A-Za-z]", version):
             version = version.lstrip("^~>=<")
         if not version or not re.search(r"\d", version):
             latest = lookup_latest_version(pkg)
             if not latest:
-                if trimble_by_name:
+                if first_party_by_name:
                     summaries.append(
-                        f"{pkg.name} (Trimble-made; not on public registries, skipped license/OSV)"
+                        f"{pkg.name} ({FIRST_PARTY.label}; not on public registries, skipped license/OSV)"
                     )
                     resolved.append(pkg)
                     continue
@@ -1267,29 +1358,29 @@ def evaluate_packages(pkgs: list[Pkg]) -> tuple[list[str], list[str], list[Pkg]]
             version = latest
         checked = Pkg(pkg.ecosystem, pkg.name, version, raw=pkg.raw)
         try:
-            license_expr, trimble, notes = fetch_license_and_trimble(checked, version)
+            license_expr, first_party, notes = fetch_license_and_origin(checked, version)
         except Exception as exc:
-            if trimble_by_name:
-                license_expr, trimble, notes = None, True, [str(exc)]
+            if first_party_by_name:
+                license_expr, first_party, notes = None, True, [str(exc)]
             else:
                 failures.append(f"{pkg.name}@{version}: license lookup failed ({exc})")
                 continue
-        trimble = trimble or trimble_by_name
+        first_party = first_party or first_party_by_name
         license_ok = permissive_license(license_expr)
-        origin = "Trimble-made" if trimble else (license_expr or "unknown license")
-        if not license_ok and not trimble:
+        origin = FIRST_PARTY.label if first_party else (license_expr or "unknown license")
+        if not license_ok and not first_party:
             extra = f" ({'; '.join(notes)})" if notes else ""
             failures.append(
                 f"{pkg.name}@{version}: license {license_expr or 'unknown'} is not a permissive commercial "
-                f"license (MIT/Apache/BSD/ISC-style) and the package is not Trimble-made{extra}"
+                f"license (MIT/Apache/BSD/ISC-style) and the package is not {FIRST_PARTY.label}{extra}"
             )
             continue
         try:
             vulns = serious_vulns(checked, version)
         except Exception as exc:
-            if trimble:
+            if first_party:
                 summaries.append(
-                    f"{pkg.name}@{version} (Trimble-made; vulnerability lookup unavailable, human must still approve)"
+                    f"{pkg.name}@{version} ({FIRST_PARTY.label}; vulnerability lookup unavailable, human must still approve)"
                 )
                 resolved.append(checked)
                 continue
@@ -1302,7 +1393,7 @@ def evaluate_packages(pkgs: list[Pkg]) -> tuple[list[str], list[str], list[Pkg]]
             continue
         summaries.append(
             f"{pkg.name}@{version} ({origin}"
-            + (f", license {license_expr}" if trimble and license_expr else "")
+            + (f", license {license_expr}" if first_party and license_expr else "")
             + ", no HIGH/CRITICAL vulns on this version)"
         )
         resolved.append(checked)
@@ -1322,7 +1413,7 @@ def handle_before_shell(data: dict[str, Any]) -> None:
         deny(
             reason,
             reason
-            + "\nUse a permissively licensed, non-vulnerable version (or a Trimble package), then retry. "
+            + "\nUse a permissively licensed, non-vulnerable version (or a first-party package), then retry. "
             "A human still has to approve the install.",
         )
     names = ", ".join(summaries)
@@ -1384,7 +1475,7 @@ def handle_pre_tool(data: dict[str, Any]) -> None:
             reason,
             reason
             + "\nDo not add this dependency. Choose a permissively licensed, non-vulnerable version "
-            "(or a Trimble package).",
+            "(or a first-party package).",
         )
     listing = "\n".join(f"- {s}" for s in summaries)
     deny(
@@ -1407,7 +1498,7 @@ def handle_session_start() -> None:
         {
             "additional_context": (
                 "Library policy: any library added to this repo must (1) have a permissive commercial "
-                "license such as MIT, Apache-2.0, BSD, or ISC, or be Trimble-made; (2) have no HIGH or "
+                "license such as MIT, Apache-2.0, BSD, or ISC, or match optional first-party.json; (2) have no HIGH or "
                 "CRITICAL vulnerabilities on the version being added; and (3) be approved by a human. "
                 "Add dependencies with the package manager (npm/pnpm/yarn/pip/poetry/uv/cargo/go/etc.), "
                 "not by editing manifests first."
@@ -1433,10 +1524,28 @@ def run_self_test() -> int:
     check(not permissive_license("GPL-3.0-or-later"), "GPL is not permissive")
     check(not permissive_license("MIT AND GPL-3.0"), "MIT AND GPL is not permissive")
     check(not permissive_license(""), "empty license is not permissive")
-    check(is_trimble_name("@trimble/foo"), "Trimble npm scope")
-    check(is_trimble_name("@trimble-oss/sdk"), "Trimble-oss scope")
-    check(is_trimble_name("trimble-identity"), "Trimble name prefix")
-    check(not is_trimble_name("lodash"), "lodash is not Trimble")
+    acme = FirstPartyPolicy(
+        label="first-party",
+        npm_scope_substrings=("acme",),
+        name_prefixes=("acme",),
+        github_orgs=("acme", "acme-oss"),
+        host_suffixes=("acme.example",),
+        meta_words=("acme",),
+    )
+    empty = FirstPartyPolicy()
+    check(is_first_party_name("@acme/foo", acme), "first-party npm scope")
+    check(is_first_party_name("@acme-oss/sdk", acme), "first-party scoped substring")
+    check(not is_first_party_name("@other/foo", acme), "other npm scope is not first-party")
+    check(is_first_party_name("acme", acme), "first-party exact name prefix")
+    check(is_first_party_name("acme-identity", acme), "first-party hyphen prefix")
+    check(not is_first_party_name("acmeidentity", acme), "prefix requires delimiter")
+    check(not is_first_party_name("lodash", acme), "lodash is not first-party")
+    check(not is_first_party_name("@acme/foo", empty), "empty policy matches no name")
+    check(not is_first_party_git_spec("github.com/acme/sdk", empty), "empty policy matches no git spec")
+    check(is_first_party_git_spec("github.com/acme/sdk", acme), "first-party git org")
+    check(is_first_party_git_spec("github:acme/sdk", acme), "first-party github: spec")
+    check(not is_first_party_git_spec("github.com/other/sdk", acme), "other git org is not first-party")
+    check(not is_first_party_git_spec("github.com/acme-tools/sdk", acme), "neighbor git org is not first-party")
 
     lodash = parse_packages_from_command("npm install lodash@4.18.1")
     check(len(lodash) == 1 and lodash[0].name == "lodash" and lodash[0].version == "4.18.1", "parse npm install")

@@ -277,7 +277,7 @@ Skip only when there is nothing to commit (clean tree / nothing staged that the 
 ### How to draft the message
 
 1. **Infer repo conventions** — run `git log --oneline -20` in the repo and match the prevailing format (prefix/tag style, separators, tense, casing, punctuation). Do not invent a format; replicate what recent commits use.
-2. **Gather context** — `git diff` / `git status`, the scope anchor, branch name (extract issue/ticket key if present, e.g. `dev/IAM-8585-…`), and any Jira/issue key from the user or task. If the commit requires a ticket number and you do not know the ticket number ask.
+2. **Gather context** — `git diff` / `git status`, the scope anchor, branch name (extract issue/ticket key if present, e.g. `dev/KEY-123-…`), and any Jira/issue key from the user or task. If the commit requires a ticket number and you do not know the ticket number ask.
 3. **Write one line** summarizing the **why** of the change (not a file list). Imperative or past-tense should match recent commits in this repo.
 
 ### Rules
@@ -295,5 +295,5 @@ Example (note: the fence contains a single line and nothing else):
 Suggested commit message:
 
 ```text
-[IAM-8585] - Refactor Address onto IamPayloadModel with snake_case fields
+[KEY-123] - Move address onto the shared payload model with snake_case fields
 ```

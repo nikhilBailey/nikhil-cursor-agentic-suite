@@ -21,7 +21,7 @@ Primary use case: **distill an agentic chat that implemented a feature** into a 
 2. Use language tag `markdown` on the outer fence. When the body contains fenced code blocks, wrap the deliverable in a **four-backtick** outer fence.
 3. No arbitrary HTML — Bitbucket escapes it.
 4. A one-line intro is fine; the copy-paste block is the deliverable.
-5. Always offer a **PR title** outside the block (plain text, one line). Include a Jira key when known (`TRID-11888: Short imperative summary`).
+5. Always offer a **PR title** outside the block (plain text, one line). Include a Jira key when known (`KEY-123: Short imperative summary`).
 6. Keep the description **review-oriented** — what changed, why, how to verify. Not a chat transcript or ticket repro write-up.
 
 ## Writing rules
@@ -81,7 +81,7 @@ Brief intro (optional) + plain-text **Title:** line, then:
 
 ````markdown
 ## Summary
-TRID-11888: OIDC auth replaces legacy wiring so the portal can sign in via Trimble Identity.
+KEY-123: OIDC auth replaces legacy wiring so the portal can sign in via the identity provider.
 
 ## Changes
 - Add AuthProvider, callback, and logout routes under `src/auth/`

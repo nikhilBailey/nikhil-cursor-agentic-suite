@@ -11,6 +11,7 @@ workplace-specific/**
 
 # Hook runtime (approved-libraries.json and similar)
 hooks/state/
+hooks/first-party.json
 
 # Never store live MCP credentials. Use mcp.json.example instead.
 mcp.json
