@@ -1,0 +1,26 @@
+---
+description: Copy-paste shell commands in chat must not include comments
+alwaysApply: true
+---
+
+# Chat commands: no comments
+
+When you give the user **commands to run themselves** (shell, `gh`, `git`, `npm`, etc.) in fenced code blocks or inline, the command text must be **comment-free**.
+
+- Do **not** use `#`, `//`, or similar comment syntax inside those commands.
+- Put explanations, labels, and “what this does” in **prose outside** the code block, not as trailing or inline comments on command lines.
+- This applies to single-line commands, multi-line scripts, and HEREDOC-wrapped examples meant for copy-paste.
+
+```bash
+# ❌ BAD — comment inside a user-run command
+git status  # see working tree
+npm install  # install deps
+```
+
+```bash
+# ✅ GOOD — explain above the block; commands are plain
+git status
+npm install
+```
+
+Comments inside **source code** you edit, cite, or review are unchanged. This rule is only for **runnable commands** you want the user to copy from chat.
