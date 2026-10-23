@@ -9,6 +9,8 @@ Remote: `git@github.com:nikhilbailey/nikhil-cursor-agentic-suite.git`
 
 This project was theory-crafted during my last 2 years at CU Boulder. As AI evolved, the ability to run a complex suite of agents tailored to an individual contributor's personal preferences became possible. This is my personal suite tailored to how I code, and I am happy to share it with the world.
 
+Any code or references specific to a workplace or project are omitted from this repo. These are stored in local workplace-specific folders and are available at the request of the organization that owns that folder.
+
 ## What is stored
 
 | Path | Source |
