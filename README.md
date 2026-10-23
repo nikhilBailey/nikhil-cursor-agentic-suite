@@ -5,6 +5,10 @@ config from `~/.cursor`. Restore this onto a new machine if the laptop dies.
 
 Remote: `git@github.com:nikhilbailey/nikhil-cursor-agentic-suite.git`
 
+## History
+
+This project was theory-crafted during my last 2 years at CU Boulder. As AI evolved, the ability to run a complex suite of agents tailored to an individual contributor's personal preferences became possible. This is my personal suite tailored to how I code, and I am happy to share it with the world.
+
 ## What is stored
 
 | Path | Source |
