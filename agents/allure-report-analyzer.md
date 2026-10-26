@@ -27,7 +27,7 @@ Resolve inputs, download or ingest artifacts, compare when a baseline exists, th
 ## Hard constraints
 
 - Do **not** trigger deployments, `workflow_dispatch`, or CI pipelines.
-- Do **not** hardcode repo names, workflow filenames, or IAM/BLU vocabulary.
+- Do **not** hardcode repo names, workflow filenames, or employer-specific product or team jargon.
 - Do **not** emit **Safe to Merge YES** or any single PASS that mixes suite health with PR delta.
 - Do **not** credit "fixed" tests to a PR unless the diff explains them.
 - **Report A (suite health)** uses the **target run only** — baseline is ignored.
