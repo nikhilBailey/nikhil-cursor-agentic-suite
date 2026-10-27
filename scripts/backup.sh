@@ -12,8 +12,22 @@ fi
 
 mkdir -p "$REPO_ROOT/agents" "$REPO_ROOT/hooks" "$REPO_ROOT/skills" "$REPO_ROOT/rules"
 
+rsync_excludes_for() {
+  local subdir="$1"
+  local -n _out=$2
+  _out=(--exclude '.DS_Store')
+  if [[ ! -d "$SRC/$subdir" ]]; then
+    return
+  fi
+  while IFS= read -r name; do
+    _out+=(--exclude "$name")
+  done < <(python3 "$REPO_ROOT/scripts/workplace-adapters.py" backup-excludes "$subdir")
+}
+
 if [[ -d "$SRC/agents" ]]; then
-  rsync -a --delete --exclude '.DS_Store' "$SRC/agents/" "$REPO_ROOT/agents/"
+  agent_excludes=()
+  rsync_excludes_for agents agent_excludes
+  rsync -a --delete "${agent_excludes[@]}" "$SRC/agents/" "$REPO_ROOT/agents/"
 fi
 if [[ -d "$SRC/hooks" ]]; then
   rsync -a --delete --exclude '.DS_Store' --exclude '__pycache__' --exclude '*.pyc' \
@@ -24,12 +38,9 @@ if [[ -f "$SRC/hooks.json" ]]; then
   cp "$SRC/hooks.json" "$REPO_ROOT/hooks.json"
 fi
 if [[ -d "$SRC/skills" ]]; then
-  # Skip skills that are symlinks (workplace-specific, not in skills/).
-  rsync_excludes=(--exclude '.DS_Store')
-  while IFS= read -r name; do
-    rsync_excludes+=(--exclude "$name")
-  done < <(find "$SRC/skills" -mindepth 1 -maxdepth 1 -type l -exec basename {} \;)
-  rsync -a --delete "${rsync_excludes[@]}" "$SRC/skills/" "$REPO_ROOT/skills/"
+  skill_excludes=()
+  rsync_excludes_for skills skill_excludes
+  rsync -a --delete "${skill_excludes[@]}" "$SRC/skills/" "$REPO_ROOT/skills/"
 fi
 if [[ -f "$SRC/permissions.json" ]]; then
   cp "$SRC/permissions.json" "$REPO_ROOT/permissions.json"
@@ -40,7 +51,9 @@ fi
 # Always-apply user rules (*.mdc). Do not --delete: rules/ also holds user-rules.md.
 if [[ -d "$SRC/rules" ]]; then
   mkdir -p "$REPO_ROOT/rules"
-  rsync -a --exclude '.DS_Store' --exclude 'user-rules.md' "$SRC/rules/" "$REPO_ROOT/rules/"
+  rule_excludes=(--exclude 'user-rules.md')
+  rsync_excludes_for rules rule_excludes
+  rsync -a "${rule_excludes[@]}" "$SRC/rules/" "$REPO_ROOT/rules/"
 fi
 
 python3 - "$SRC/mcp.json" "$REPO_ROOT/mcp.json.example" <<'PY'

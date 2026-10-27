@@ -11,6 +11,65 @@ This project was theory-crafted during my last 2 years at CU Boulder. As AI evol
 
 Any code or references specific to a workplace or project are omitted from this repo. These are stored in local workplace-specific folders and are available at the request of the organization that owns that folder.
 
+## Workplace adapters
+
+Committed skills under `skills/` stay **workplace-agnostic**. Each employer plugs in locally under `workplace-specific/<id>/` (gitignored except `.gitkeep`). No script in this repo hard-codes an employer id.
+
+### Layout
+
+| Path | Role |
+| --- | --- |
+| `workplace-specific/<id>/adapter.json` | Optional manifest: where skills, agents, references, and hooks live |
+| `workplace-specific/<id>/<skill>/SKILL.md` | Legacy flat skill (no adapter required) |
+| `workplace-specific/<id>/hooks/first-party.json` | Optional library gate policy (at most one workplace may supply this) |
+
+`adapter.json` may set `root` to a directory outside this repo (for example a clone of an internal toolkit). Paths in the manifest are relative to `root`, or to the adapter file when `root` is omitted.
+
+### `adapter.json` contract
+
+```json
+{
+  "root": "/path/to/external/toolkit",
+  "user": {
+    "skillGlobs": ["skills/*/*"],
+    "agentGlobs": ["cursor/*/agents/*.md"]
+  },
+  "project": {
+    "skillGlobs": ["skills/*/*"],
+    "agentGlobs": ["cursor/*/agents/*.md"],
+    "referenceGlobs": ["skills/*/references/**"],
+    "ruleGlobs": ["cursor/*/rules/*.mdc"]
+  },
+  "hooks": {
+    "firstParty": "hooks/first-party.json"
+  }
+}
+```
+
+- **user.*** — `restore.sh` symlinks matching skills and agents into `~/.cursor/` beside your personal skills. Skill globs match directories that contain `SKILL.md`; the symlink name is that directory’s basename.
+- **project.*** — not applied by restore. Run `./scripts/link-project-adapters.sh /path/to/work/repo` to symlink skills, agents, references, and rules into that repo’s `.cursor/`. The linker refuses this suite repo as a target.
+- **hooks.firstParty** — copied to `~/.cursor/hooks/first-party.json` during restore. Only one workplace may define a policy (including a legacy `hooks/first-party.json` file).
+
+Collisions (two workplaces or an adapter vs a committed skill name) fail restore with an error instead of overwriting.
+
+### Commands
+
+```bash
+./scripts/restore.sh
+./scripts/link-project-adapters.sh /path/to/work/repo
+./scripts/backup.sh
+```
+
+`backup.sh` skips symlinks under `~/.cursor/skills`, `agents`, and `rules`, and does not follow symlinks into `workplace-specific/`, so employer toolkit files are not copied into the committed tree.
+
+### Example: new employer `acme`
+
+On disk only (nothing to commit except the existing `workplace-specific/acme/.gitkeep`):
+
+1. Add `workplace-specific/acme/adapter.json` pointing at your local Acme toolkit clone.
+2. Optionally add `workplace-specific/acme/my-skill/SKILL.md` for a one-off skill without an external root.
+3. Run `./scripts/restore.sh`, then link a work repo if the toolkit expects project-level `.cursor/` paths.
+
 ## What is stored
 
 | Path | Source |

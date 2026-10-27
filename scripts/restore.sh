@@ -21,13 +21,7 @@ if [[ -d "$REPO_ROOT/skills" ]]; then
   rsync -a --exclude '.DS_Store' "$REPO_ROOT/skills/" "$DEST/skills/"
 fi
 if [[ -d "$REPO_ROOT/workplace-specific" ]]; then
-  while IFS= read -r skill_dir; do
-    ln -sfn "$skill_dir" "$DEST/skills/$(basename "$skill_dir")"
-  done < <(find "$REPO_ROOT/workplace-specific" -mindepth 2 -maxdepth 2 -type d -exec test -f '{}/SKILL.md' \; -print)
-  while IFS= read -r policy; do
-    mkdir -p "$DEST/hooks"
-    cp "$policy" "$DEST/hooks/first-party.json"
-  done < <(find "$REPO_ROOT/workplace-specific" -name first-party.json -print)
+  python3 "$REPO_ROOT/scripts/workplace-adapters.py" restore-user
 fi
 if [[ -f "$REPO_ROOT/permissions.json" ]]; then
   cp "$REPO_ROOT/permissions.json" "$DEST/permissions.json"
@@ -52,4 +46,5 @@ fi
 echo "Restored agentic files to $DEST"
 echo "Re-add Settings rules from $REPO_ROOT/rules/user-rules.md in Cursor Settings → Rules."
 echo "Always-apply *.mdc rules were copied to $DEST/rules/ if present."
+echo "For workplace project overlays: $REPO_ROOT/scripts/link-project-adapters.sh /path/to/work/repo"
 echo "Restart Cursor so hooks and skills reload."
