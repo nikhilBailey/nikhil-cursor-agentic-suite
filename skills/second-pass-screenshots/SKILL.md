@@ -50,7 +50,7 @@ Respect that producer's forbidden content (e.g. do not add precomputed verdicts 
 ### After the producer returns
 
 - Locate the written artifact (path from the subagent response or user context).
-- If the user asked for stubs and the file contains no `second-pass-screenshot` comment, **resume the same producer subagent once** with the contract repeated more prominently. Still only one producer subagent at a time.
+- If the user asked for stubs and the file contains no fenced `text` block whose first line is `second-pass-screenshot`, **resume the same producer subagent once** with the contract repeated more prominently. HTML comments do not count; plan mode removes them on save. Still only one producer subagent at a time.
 - Tell the user capture is a separate step: run this skill in **Capture mode** when ready.
 
 ## Capture mode
