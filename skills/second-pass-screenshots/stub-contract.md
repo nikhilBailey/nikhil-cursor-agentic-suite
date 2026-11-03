@@ -34,6 +34,7 @@ Optional fields the capture agent may append inside the same fence:
 
 - `captured-file` — relative path written on success
 - `blocked-reason` — one line when `status: blocked`
+- `capture-note` — one line when a shot was saved but does not match `capture` (for example the page would not scroll, so a viewport PNG was saved for a `fullPage` stub)
 
 Keep the field order in the template. One field per line. Split a line on the first `:`.
 

@@ -24,7 +24,7 @@ Read the full stub grammar from [stub-contract.md](stub-contract.md) when seedin
 
 ## Seed mode
 
-Use when the user asks to **seed** second-pass screenshot stubs **while** another skill is producing a document (Allure report, runbook, PR markdown, etc.). If they only want capture on an existing file, use Capture mode instead.
+Use when the user asks to **seed** second-pass screenshot stubs **while** another skill is producing a document (a report, a guide, pull-request markdown, or any other write-up). If they only want capture on an existing file, use Capture mode instead.
 
 ### Parent behavior
 
@@ -45,7 +45,7 @@ Second-pass screenshot seeding (required):
 <paste Producer obligations + Stub grammar + Template from stub-contract.md>
 ```
 
-Respect that producer's forbidden content (e.g. do not add precomputed verdicts or classifications the producer skill forbids in the parent prompt).
+Respect that producer's forbidden content. Do not add material that skill tells the parent to keep out of the prompt.
 
 ### After the producer returns
 
@@ -57,7 +57,7 @@ Respect that producer's forbidden content (e.g. do not add precomputed verdicts 
 
 Use when the user asks to run the **second pass**, **take the seeded screenshots**, or **fill** `second-pass-screenshot` stubs. The producer skill is irrelevant; only the artifact path matters.
 
-Your **first tool call** in capture mode must be Task (unless retrying after failure). Do not screenshot in the parent agent.
+Your **first tool call** in capture mode must be Task (unless retrying after failure, or the user gave a replacement origin to write onto stub `url` lines first). Do not open the browser in the parent agent. That includes listing tabs, navigating, snapshotting, and waiting while the user finishes sign-in or MFA. Pass that wait as a user option; the taker reveals the page and polls.
 
 ### Launch
 
@@ -70,31 +70,48 @@ Use the Task tool with:
 
 Prompt shape:
 
+Do not add a capture procedure to the prompt. The agent file is the procedure. User options are only the switches below.
+
 ```text
-Fill second-pass-screenshot stubs in the artifact below. Follow ~/.cursor/agents/second-pass-screenshot-taker.md and skills/second-pass-screenshots/stub-contract.md.
+Fill second-pass-screenshot stubs in the artifact below. Follow the agent instructions you were given and skills/second-pass-screenshots/stub-contract.md.
 
 Artifact (absolute path):
 <path to markdown file>
 
-User options (if any):
-<refresh captured stubs, specific stub ids only, stop on first failure, etc.>
+User options:
+- refresh captured: yes/no
+- retry blocked: yes/no
+- wait for sign-in or MFA: yes/no
+- wait budget: <default four minutes, or what the user asked>
+- ids: <all, or a list>
+- stop on first failure: yes/no
+- replacement origin: <only if the user gave an absolute origin; otherwise omit>
 ```
+
+Set `retry blocked: yes` when the user asks to restart, retry, or continue after sign-in. Stubs already marked `blocked` are skipped otherwise, including stubs blocked only because sign-in was still up.
+
+Set `wait for sign-in or MFA: yes` when the user says they are signing in or to wait. Do not start that wait in the parent.
+
+If the user gives a different absolute origin, rewrite only the origin on stub `url` lines (keep each path) before launch. Do not crawl a repository for environment hosts, and do not open the browser to discover the host. If they name an environment but no origin, ask for the origin and stop.
 
 ### Parent-agent constraints (capture)
 
-- Do **not** open the browser or take screenshots in the parent turn.
-- After the subagent finishes, present the summary (captured vs blocked ids) and the artifact path.
-- Surface **blocked** stubs and likely next steps (login, allowlist, fix `url`/`ready`/`selector`).
+- Do **not** call browser tools in the parent turn.
+- After the subagent finishes, present the summary (captured vs blocked ids, plus any `capture-note`) and the artifact path.
+- The capture result is the PNG at each `image` path and the markdown image immediately after that fence. The fence stays. A preview that does not render local images is not a missing screenshot.
+- Surface **blocked** stubs and likely next steps (finish sign-in in the browser pane, allowlist, fix `url`/`ready`/`selector`). A follow-up capture after sign-in uses `retry blocked: yes`.
 
 ### Retries (capture)
 
 - Bad invocation (wrong type, empty artifact path): correct once and retry.
 - Other transient Task failures: retry once with the same prompt.
-- If Task rejects `second-pass-screenshot-taker` as unknown/unregistered: retry **once** as `generalPurpose` whose prompt starts with the full contents of `~/.cursor/agents/second-pass-screenshot-taker.md`, then the prompt shape above. Tell the user a **Developer: Reload Window** (or restart Cursor) will register the subagent for later chats.
+- A user-requested restart is a new launch with the latest user options, not this one automatic retry.
+- If Task rejects `second-pass-screenshot-taker` as unknown/unregistered: the agent file is not installed under `~/.cursor/agents/`. Read `agents/second-pass-screenshot-taker.md` from the suite that contains this skill (use `~/.cursor/agents/second-pass-screenshot-taker.md` only when that file exists). Retry **once** as `generalPurpose` whose prompt starts with those full contents, then the prompt shape above. Tell the user the named type registers after that file is copied into `~/.cursor/agents/` and they run **Developer: Reload Window**. A reload alone does nothing while the file is absent.
 - If that fallback also fails, stop. Do not capture in the parent unless they explicitly ask you to proceed without the subagent.
 
 ## What this skill does not do
 
 - Edit producer skills or agent protocols.
 - Run capture automatically at the end of seed mode unless the user asked to run both steps in one request (then seed first, then capture).
+- Remove stubs, publish the document, or copy figures into another file.
 - Camera photos, macOS window capture, or Playwright.
